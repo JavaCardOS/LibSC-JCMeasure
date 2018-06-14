@@ -1,0 +1,36 @@
+#coding: utf-8
+
+PKGS = [{
+    "name": "libsc.jcmeasure.test_aaload",
+    "version": "1.0",
+    "aid": "11223344550002",
+    "applets": [{
+        "name": "TestAALoad",
+        "aid": "1122334455000201"
+    }]
+}]
+
+from jcbuilder import gen_caps, convert_jca
+from pathlib import Path
+
+dist_path = ARGUMENTS.get("DIST_PATH", "../../tests")
+
+# generate cap and jca file by java file
+caps = gen_caps(PKGS)
+jca = str(Path(str(caps[0])).with_suffix(".jca"))
+Depends(jca, caps)
+
+def insert_op(target, source, env):
+    jca_lines = open(str(source[0])).readlines()
+    with open(str(target[0]), "w") as f:
+        for i, line in enumerate(jca_lines):
+            # remove aaload; in empty_single method
+            if 118 < i < 155 and line.strip() == "aaload;":
+                continue
+            f.write(line)
+    
+new_jca = Command("test_aaload.jca", jca, insert_op)
+
+out = convert_jca("test_aaload.cap", new_jca)
+inst = Install(dist_path, out + Glob("*.json"))
+Default(inst)
